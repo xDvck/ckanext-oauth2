@@ -21,7 +21,7 @@
 from __future__ import unicode_literals
 
 import logging
-import oauth2
+import ckanext.oauth2
 import os
 
 from functools import partial
