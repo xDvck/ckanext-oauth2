@@ -29,6 +29,7 @@ from ckan import plugins
 from ckan.common import g
 from ckan.plugins import toolkit
 from urllib.parse import urlparse
+from flask import Blueprint, redirect
 
 log = logging.getLogger(__name__)
 
@@ -83,11 +84,68 @@ def _get_previous_page(default_page):
     return came_from_url
 
 
+# Flask views for OAuth2 login and callback
+def login():
+    """
+    Flask view for login using OAuth2
+    """
+    from ckanext.oauth2 import constants
+    log.debug('login')
+
+    # Log in attempts are fired when the user is not logged in and they click
+    # on the log in button
+
+    # Get the page where the user was when the login attempt was fired
+    # When the user is not logged in, he/she should be redirected to the dashboard when
+    # the system cannot get the previous page
+    came_from_url = _get_previous_page(constants.INITIAL_PAGE)
+
+    oauth2_helper = oauth2.OAuth2Helper()
+    return oauth2_helper.challenge(came_from_url)
+
+
+def callback():
+    """
+    Flask view for OAuth2 callback
+    """
+    from flask import flash, request
+    from ckan.common import session
+    import ckan.lib.helpers as helpers
+    from ckanext.oauth2 import constants
+
+    oauth2_helper = oauth2.OAuth2Helper()
+    try:
+        token = oauth2_helper.get_token()
+        user_name = oauth2_helper.identify(token)
+        oauth2_helper.remember(user_name)
+        oauth2_helper.update_token(user_name, token)
+        return oauth2_helper.redirect_from_callback()
+    except Exception as e:
+        session.save()
+
+        # If the callback is called with an error, we must show the message
+        error_description = request.args.get('error_description')
+        if not error_description:
+            if getattr(e, 'message', None):
+                error_description = e.message
+            elif hasattr(e, 'description') and e.description:
+                error_description = e.description
+            elif hasattr(e, 'error') and e.error:
+                error_description = e.error
+            else:
+                error_description = type(e).__name__
+
+        redirect_url = oauth2.get_came_from(request.args.get('state'))
+        redirect_url = '/' if redirect_url == constants.INITIAL_PAGE else redirect_url
+        flash(error_description, 'error')
+        return redirect(redirect_url)
+
+
 class OAuth2Plugin(plugins.SingletonPlugin):
 
     plugins.implements(plugins.IAuthenticator, inherit=True)
     plugins.implements(plugins.IAuthFunctions, inherit=True)
-    plugins.implements(plugins.IRoutes, inherit=True)
+    plugins.implements(plugins.IBlueprint)
     plugins.implements(plugins.IConfigurer)
 
     def __init__(self, name=None):
@@ -95,33 +153,52 @@ class OAuth2Plugin(plugins.SingletonPlugin):
         log.debug('Init OAuth2 extension')
 
         self.oauth2helper = oauth2.OAuth2Helper()
+        
+        # Store these for use in get_blueprint
+        self.register_url = None
+        self.reset_url = None
+        self.edit_url = None
+        self.authorization_header = None
 
-    def before_map(self, m):
-        log.debug('Setting up the redirections to the OAuth2 service')
-
-        m.connect('/user/login',
-                  controller='ckanext.oauth2.controller:OAuth2Controller',
-                  action='login')
-
-        # We need to handle petitions received to the Callback URL
-        # since some error can arise and we need to process them
-        m.connect('/oauth2/callback',
-                  controller='ckanext.oauth2.controller:OAuth2Controller',
-                  action='callback')
-
-        # Redirect the user to the OAuth service register page
+    def get_blueprint(self):
+        """
+        Return a Flask Blueprint object to be registered by the app.
+        """
+        # Create Blueprint for plugin
+        blueprint = Blueprint('oauth2', __name__)
+        
+        # Add plugin url rules to Blueprint object
+        blueprint.add_url_rule('/user/login', 
+                              'login',
+                              login, 
+                              methods=['GET', 'POST'])
+        
+        blueprint.add_url_rule('/oauth2/callback',
+                              'callback',
+                              callback,
+                              methods=['GET'])
+        
+        # Handle redirects that were previously done in before_map
         if self.register_url:
-            m.redirect('/user/register', self.register_url)
-
-        # Redirect the user to the OAuth service reset page
+            @blueprint.route('/user/register')
+            def register_redirect():
+                return redirect(self.register_url)
+                
         if self.reset_url:
-            m.redirect('/user/reset', self.reset_url)
-
-        # Redirect the user to the OAuth service reset page
+            @blueprint.route('/user/reset')
+            def reset_redirect():
+                return redirect(self.reset_url)
+                
         if self.edit_url:
-            m.redirect('/user/edit/{user}', self.edit_url)
-
-        return m
+            @blueprint.route('/user/edit/<user>')
+            def edit_redirect(user):
+                # Format the URL with the user parameter
+                formatted_url = self.edit_url
+                if '{user}' in self.edit_url:
+                    formatted_url = self.edit_url.format(user=user)
+                return redirect(formatted_url)
+        
+        return blueprint
 
     def identify(self):
         log.debug('identify')
@@ -182,4 +259,4 @@ class OAuth2Plugin(plugins.SingletonPlugin):
 
         # Add this plugin's templates dir to CKAN's extra_template_paths, so
         # that CKAN will use this plugin's custom templates.
-        plugins.toolkit.add_template_directory(config, 'templates')
+        plugins.toolkit.add_template_directory(config, 'templates')       plugins.toolkit.add_template_directory(config, 'templates')       plugins.toolkit.add_template_directory(config, 'templates')
