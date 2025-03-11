@@ -71,36 +71,32 @@ setup(
     namespace_packages=['ckanext'],
     include_package_data=True,
     zip_safe=False,
-    setup_requires=[
-        'nose>=1.3.0'
-    ],
     install_requires=[
-        'requests-oauthlib==0.8.0',
-        'pyjwt==1.7.1',
+        'requests-oauthlib==2.0.0',
+        'pyjwt==2.10.1',
     ],
     tests_require=[
-        'parameterized',
-        'selenium==3.5.0'
+        'pytest',
+        'selenium==4.29.0'
     ],
-    test_suite='nosetests',
+    test_suite='pytest',
     entry_points={
         'ckan.plugins': [
             'oauth2 = ckanext.oauth2.plugin:OAuth2Plugin',
         ],
-        'nose.plugins': [
-            'pylons = pylons.test:PylonsPlugin'
-        ]
     },
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Environment :: Web Environment",
-        'Intended Audience :: Developers',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python',
-        'Topic :: Internet :: WWW/HTTP :: Session',
-        'Topic :: Internet :: WWW/HTTP :: WSGI :: Middleware',
-        'Topic :: Software Development :: Libraries :: Python Modules',
-        'Topic :: System :: Systems Administration :: Authentication/Directory',
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: GNU Affero General Public License v3",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Topic :: Internet :: WWW/HTTP :: Session",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+        "Topic :: System :: Systems Administration :: Authentication/Directory",
     ],
 )
