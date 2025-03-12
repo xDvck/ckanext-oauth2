@@ -46,4 +46,6 @@ def init_db(model):
         # Create the table only if it does not exist
         user_token_table.create(checkfirst=True)
 
+        user_token_table.create(bind=model.Session.bind, checkfirst=True)
+
         model.meta.mapper(UserToken, user_token_table)
