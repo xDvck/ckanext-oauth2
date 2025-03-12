@@ -23,7 +23,7 @@ from __future__ import unicode_literals
 
 import base64
 import ckan.model as model
-from ckanext.db import db
+from ckanext.oauth2 import db
 import json
 import logging
 from six.moves.urllib.parse import urljoin
