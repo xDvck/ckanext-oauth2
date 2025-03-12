@@ -43,9 +43,9 @@ from ckanext.oauth2 import constants
 
 log = logging.getLogger(__name__)
 
-
 def generate_state(url):
-    return b64encode(bytes(json.dumps({constants.CAME_FROM_FIELD: url})))
+    return b64encode(bytes(json.dumps({constants.CAME_FROM_FIELD: url}), 'utf-8'))
+
 
 
 def get_came_from(state):
