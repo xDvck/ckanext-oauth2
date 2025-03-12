@@ -38,7 +38,7 @@ import six
 
 import jwt
 
-import constants
+from ckanext.oauth2 import constants
 
 
 log = logging.getLogger(__name__)
