@@ -152,6 +152,7 @@ class OAuth2Plugin(plugins.SingletonPlugin):
         '''Store the OAuth 2 client configuration'''
         log.debug('Init OAuth2 extension')
 
+        self.name = name
         self.oauth2helper = oauth2.OAuth2Helper()
         
         # Store these for use in get_blueprint
